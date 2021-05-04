@@ -1,20 +1,20 @@
 ﻿using System;
 using System.IO;
-using UnityEditor;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 [Serializable]
-public sealed class AssetLink : Asset
+public sealed class AssetLink : IDisposable
 {
     #region Variables
 
-    const string RESOURCE_FOLDER = "Resources/";
+    private const string RESOURCE_FOLDER = "Resources/";
 	public string name;
 	public string assetGUID;
 
-    string fullPath = null;
-    string resourcePath = null;
-    Object loadedAsset;
+	private string fullPath = null;
+	private string resourcePath = null;
+	private Object loadedAsset;
 
     #endregion
 
@@ -59,7 +59,7 @@ public sealed class AssetLink : Asset
 
     public bool IsResource => !string.IsNullOrEmpty(ResourcePath);
     
-    public override bool IsLoaded => loadedAsset;
+    public bool IsLoaded => loadedAsset;
 
     #endregion
 
@@ -72,7 +72,6 @@ public sealed class AssetLink : Asset
 	}
 	
 
-    [Obsolete("For RESOURCES use AssetResource, for STREAMING ASSETS use AssetStreaming")]
     public AssetLink(string path)
     {
         name = Path.GetFileNameWithoutExtension(path);
@@ -84,23 +83,23 @@ public sealed class AssetLink : Asset
 
     #region Public methods
 
-    public override void Load()
+    public void Load<T>()
     {
         #if UNITY_EDITOR
-        loadedAsset = AssetDatabase.LoadAssetAtPath(FullPath, typeof(Object));
+        loadedAsset = UnityEditor.AssetDatabase.LoadAssetAtPath(FullPath, typeof(T));
         #else
         if (!IsLoaded)
         {
             if (IsResource)
             {
-                loadedAsset = Resources.Load(ResourcePath, typeof(Object));
+                loadedAsset = Resources.Load(ResourcePath, typeof(T));
             }
         }
         #endif
     }
     
 
-    public override void Unload()
+    public void Unload()
     {
         #if UNITY_EDITOR
         loadedAsset = null;
@@ -118,19 +117,19 @@ public sealed class AssetLink : Asset
 
 
     // Use IDisposable interface or Unload for free resources
-    public Object GetAsset()
+    public T GetAsset<T>() where T : Object
     {
-        Object result = null;
+        T result = default;
         if (IsLoaded)
         {
-            result = loadedAsset;
+            result = loadedAsset as T;
         }
         else
         {
-            Load();
+            Load<T>();
             if (IsLoaded)
             {
-                result = loadedAsset;
+                result = loadedAsset as T;
             }
         }
         return result;
@@ -138,17 +137,23 @@ public sealed class AssetLink : Asset
     
 
     // Use IDisposable interface or Unload for free resources
-    public Object GetInstance()
+    public T GetInstance<T>() where T : Object
     {
-        Object result = null;
+	    T result = default;
 
-        var asset = GetAsset();
+        var asset = GetAsset<T>();
         if (asset)
         {
-            result = Object.Instantiate(loadedAsset);
+            result = Object.Instantiate(loadedAsset) as T;
         }
         
         return result;
+    }
+    
+    
+    public void Dispose()
+    {
+	    Unload();
     }
 
     #endregion
@@ -161,8 +166,8 @@ public sealed class AssetLink : Asset
         #if UNITY_EDITOR
         if (asset != null)
         {
-            string newAssetPath = AssetDatabase.GetAssetPath(asset);
-            assetGUID = AssetDatabase.AssetPathToGUID(newAssetPath);
+            string newAssetPath = UnityEditor.AssetDatabase.GetAssetPath(asset);
+            assetGUID = UnityEditor.AssetDatabase.AssetPathToGUID(newAssetPath);
             name = asset.name;
         }
         else

@@ -1,170 +1,78 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-using System.IO;
+using UnityEngine;
 
 #if UNITY_EDITOR
 using UnityEditor;
-using System.Text;
 #endif
 
-public static class GUIDMapper 
+public static class GUIDMapper
 {
-    #region Variables
+    private const int GUID_LENGTH = 32;
+    private const string FILE_NAME = "guids";
 
-    #if !UNITY_EDITOR
-    const int GUID_LENGTH = 32;
-    static Dictionary<string, string> guidMap = new Dictionary<string, string>();
-    static bool isParse;
-    #endif
+    private static Dictionary<string, string> guidMap = new Dictionary<string, string>();
+    private static bool initialized = false;
 
-    #endregion
-
-
-    #region Public methods
 
     public static string GUIDToAssetPath(string guid)
     {
         string path = string.Empty;
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         path = AssetDatabase.GUIDToAssetPath(guid);
-        #else
-        if (!isParse)
-        {
-            Parse();
-        }
+#else
+        Init();
         if (!guidMap.TryGetValue(guid, out path))
         {
-            CustomDebug.Log("GUIDMapper.Log can't find path for Guid : " + guid);
+            Debug.Log("GUIDMapper.Log can't find path for Guid : " + guid);
         }
-        #endif
+#endif
         return path;
     }
 
-    #endregion
-
-
-    #region Private methods
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    static void RuntimeInitialize()
+    private static void RuntimeInitialize()
     {
-        #if !UNITY_EDITOR
-        if (!isParse)
+#if !UNITY_EDITOR
+        Init();
+#endif
+    }
+
+    private static void Init()
+    {
+        if(initialized)
+            return;
+        
+        var asset = Resources.Load<TextAsset>(FILE_NAME);
+        
+        if (asset)
         {
-            Parse();
+            Parse(asset.text);
         }
-        #endif
-    }
-
-    #if !UNITY_EDITOR
-    static void Parse()
-    {
-        if (!isParse)
+        else
         {
-            string filePath = Application.streamingAssetsPath + "/guids";
-            string result = string.Empty;
-            bool isCorrect = false;
-
-            float time = Time.realtimeSinceStartup;
-
-            if (filePath.Contains(PathUtils.WWW_FILE_PREFIX))
-            {
-                using (WWW wwwFile = new WWW(filePath))
-                {
-                    while (!wwwFile.isDone) { System.Threading.Thread.Sleep(1); }
-                    isCorrect = string.IsNullOrEmpty(wwwFile.error);
-                    if (isCorrect)
-                    {
-                        result = wwwFile.text;
-                    }
-                }
-            }
-            else
-            {
-                isCorrect = File.Exists(filePath);
-                if (isCorrect)
-                {
-                    result = System.IO.File.ReadAllText(filePath);
-                }
-            }
-
-            if (isCorrect)
-            {
-                string[] paths = result.Split(new string[] { System.Environment.NewLine }, System.StringSplitOptions.RemoveEmptyEntries);
-                for (int i = 0, pathsLength = paths.Length; i < pathsLength; i++) 
-                {
-                    var line = paths[i];
-                    string guid = line.Substring(0, GUID_LENGTH);
-                    string path = line.Substring(GUID_LENGTH, line.Length - GUID_LENGTH);
-                    guidMap.Add(guid, path);
-                }
-
-                time = (Time.realtimeSinceStartup - time) * 1000;
-                CustomDebug.Log("GUIDMapper.Parse by : " + time.ToString("f10") + " miliseconds for " + guidMap.Keys.Count);
-            }
-            else
-            {
-                CustomDebug.LogError("GUIDMapper.Error can't find file : " + filePath);
-            }
-            isParse = true;
+            Debug.LogError("GUIDMapper.Error can't find file : " + FILE_NAME);
         }
-    }
-    #endif
-
-    #endregion
-
-
-    #region Editor
-
-    #if UNITY_EDITOR
-    [MenuItem("Assets/CollectGUIDs", false, 10001)]
-    static void CollectData()
-    {
-        WriteGUIDs();
+            
+        initialized = true;
     }
 
-//    [PreProcessBuild(1)]
-//    static void AddGUIDsToBuild(BuildTarget target)
-//    {
-//        WriteGUIDs();
-//    }
 
-    private static void WriteGUIDs()
+    private static void Parse(string result)
     {
-        if (!Directory.Exists(Application.streamingAssetsPath))
+        float time = Time.realtimeSinceStartup;
+
+        string[] paths = result.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0, pathsLength = paths.Length; i < pathsLength; i++) 
         {
-            Directory.CreateDirectory(Application.streamingAssetsPath);
+            var line = paths[i];
+            string guid = line.Substring(0, GUID_LENGTH);
+            string path = line.Substring(GUID_LENGTH, line.Length - GUID_LENGTH);
+            guidMap.Add(guid, path);
         }
 
-        if (Directory.Exists(Application.streamingAssetsPath))
-        {
-            string filePath = Application.streamingAssetsPath + "/guids";
-            string[] paths = AssetDatabase.GetAllAssetPaths();
-
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0, pathsLength = paths.Length; i < pathsLength; i++)
-            {
-                var path = paths[i];
-                if (
-                    path.StartsWith("Assets/", System.StringComparison.Ordinal) &&
-                    !path.Contains("Editor") &&
-                    !path.Contains(".cs") &&
-                    (
-                        path.Contains("Resources") ||
-                        path.Contains("StreamingAssets")
-                    ))
-                {
-                    sb.Append(AssetDatabase.AssetPathToGUID(path));
-                    sb.AppendLine(path);
-                }
-            }
-
-            System.IO.FileInfo file = new System.IO.FileInfo(filePath);
-            file.Directory.Create();
-            System.IO.File.WriteAllText(file.FullName, sb.ToString());
-        }   
+        time = (Time.realtimeSinceStartup - time) * 1000;
+        Debug.Log("[GUIDMapper] Parsed by : " + time.ToString("f10") + " miliseconds for " + guidMap.Keys.Count);
     }
-    #endif    
-
-    #endregion
 }
