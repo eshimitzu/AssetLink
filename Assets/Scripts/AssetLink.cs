@@ -7,10 +7,9 @@ using Object = UnityEngine.Object;
 public sealed class AssetLink : IDisposable
 {
     #region Variables
-
-    private const string RESOURCE_FOLDER = "Resources/";
-	public string name;
-	public string assetGUID;
+    
+	[SerializeField] private string name;
+	[SerializeField] private string assetGUID;
 
 	private string fullPath = null;
 	private string resourcePath = null;
@@ -39,19 +38,9 @@ public sealed class AssetLink : IDisposable
 		get
 		{
             if (string.IsNullOrEmpty(resourcePath))
-			{
-				int startIndex = FullPath.IndexOf(RESOURCE_FOLDER, StringComparison.Ordinal);
-				if(startIndex > -1)
-				{
-					startIndex += RESOURCE_FOLDER.Length;
-                    resourcePath = FullPath.Substring(startIndex);
-                    resourcePath = resourcePath.RemovePathExtention();
-				}
-				else
-				{
-                    resourcePath = string.Empty;
-				}
-			}
+            {
+                resourcePath = PathUtils.GetResourcePath(FullPath);
+            }
 
 			return resourcePath;
 		}
@@ -182,4 +171,6 @@ public sealed class AssetLink : IDisposable
     }
         
     #endregion
+    
+    public static implicit operator GameObject(AssetLink d) => d.GetAsset<GameObject>();
 }

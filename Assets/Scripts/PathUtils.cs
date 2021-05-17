@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 public static class PathUtils 
 {
@@ -24,11 +25,29 @@ public static class PathUtils
     const string FORMAT_PATH_EXTENTION  = "{0}.{1}";
     const string FORMAT_PATH_BASHSHELL  = "\"{0}\"";
 
+    private const string RESOURCE_FOLDER = "Resources/";
+
     #endregion
 
 
 
     #region Unity Utils
+
+    public static string GetResourcePath(string fullPath)
+    {        
+        int startIndex = fullPath.IndexOf(RESOURCE_FOLDER, StringComparison.Ordinal);
+        if(startIndex > -1)
+        {
+            startIndex += RESOURCE_FOLDER.Length;
+            var resourcePath = fullPath.Substring(startIndex);
+            resourcePath = resourcePath.RemovePathExtention();
+
+            return resourcePath;
+        }
+
+        return string.Empty;
+    }
+    
 
     public static string GetDataRoot()
     {
