@@ -5,11 +5,12 @@ public class Test : MonoBehaviour
 {
     [SerializeField] private AssetLink prefab;
     [SerializeField] private List<AssetLink> prefabs;
+    [SerializeField] private AssetLink[] prefabs2;
+
     [SerializeField] private List<GameObject> gprefabs;
 
     private void Start()
     {
-        // var cube = prefab.GetInstance<GameObject>();
-        GameObject sprite = prefabs[0];
+        GameObject p = prefabs[0];
     }
 }

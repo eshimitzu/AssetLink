@@ -34,6 +34,8 @@ public class AssetLinkDrawer : PropertyDrawer
 
 	public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 	{		
+		EditorGUI.BeginProperty(position, label, property);
+
 		Object asset = null;
 		SerializedProperty assetGUIDProperty = property.FindPropertyRelative("assetGUID");
 
@@ -41,8 +43,16 @@ public class AssetLinkDrawer : PropertyDrawer
 		{
 			asset = GUIDToAsset(assetGUIDProperty.stringValue, VisibleType);
 		}
+
+		bool isMissing = !string.IsNullOrEmpty(assetGUIDProperty.stringValue) && !asset;
+
+		var color = GUI.contentColor;
+		GUI.contentColor = isMissing ? Color.red : color;
 		
 		Object newAsset = EditorGUI.ObjectField(position, GetDisplayName(property, label), asset, VisibleType, false);
+		
+		GUI.contentColor = color;
+		
 		if(asset != newAsset)
 		{
 			AssetLink link = GetTarget(property);
@@ -52,6 +62,10 @@ public class AssetLinkDrawer : PropertyDrawer
 
 			EditorUtility.SetDirty(property.serializedObject.targetObject);
 		}
+
+		DropAreaGUI(position, property, label);
+
+		EditorGUI.EndProperty();
 	}
 	
 
@@ -128,99 +142,165 @@ public class AssetLinkDrawer : PropertyDrawer
 	}
 	
 	
-	
-	private string dragDropIdentifier;
-	
-	protected void ExampleDragDropGUI(Rect dropArea, SerializedProperty property)
+	private SerializedProperty GetParent(SerializedProperty current)
 	{
-		// Cache References:
-		Event currentEvent = Event.current;
-		EventType currentEventType = currentEvent.type;
-	   
-		// The DragExited event does not have the same mouse position data as the other events,
-		// so it must be checked now:
-		if ( currentEventType == EventType.DragExited )
-			DragAndDrop.PrepareStartDrag();// Clear generic data when user pressed escape. (Unfortunately, DragExited is also called when the mouse leaves the drag area)
- 
-		if (!dropArea.Contains(currentEvent.mousePosition))
-			return;
- 
-		switch (currentEventType){
-			case EventType.MouseDown:
-				DragAndDrop.PrepareStartDrag();// reset data
-   
-				CustomDragData dragData = new CustomDragData();
-				// dragData.originalIndex = somethingYouGotFromYourProperty;
-				// dragData.originalList = this.targetList;
-   	
-				DragAndDrop.SetGenericData(dragDropIdentifier, dragData);
-   
-				Object[] objectReferences = new Object[1]{property.objectReferenceValue};// Careful, null values cause exceptions in existing editor code.
-				DragAndDrop.objectReferences = objectReferences;// Note: this object won't be 'get'-able until the next GUI event.
-   
-				currentEvent.Use();
-   
-				break;
-			case EventType.MouseDrag:
-				// If drag was started here:
-				CustomDragData existingDragData = DragAndDrop.GetGenericData(dragDropIdentifier) as CustomDragData;
-       
-				if (existingDragData != null){
-					DragAndDrop.StartDrag("Dragging List ELement");
-					currentEvent.Use();
-				}
-       
-				break;
-			case EventType.DragUpdated:
-				if (IsDragTargetValid())
-				{
-					DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-				}
-				else
-				{
-					DragAndDrop.visualMode = DragAndDropVisualMode.Rejected;
-				}
-       
-				currentEvent.Use();
-				break;      
-			case EventType.Repaint:
-				if (
-					DragAndDrop.visualMode == DragAndDropVisualMode.None||
-					DragAndDrop.visualMode == DragAndDropVisualMode.Rejected) break;
-       
-				EditorGUI.DrawRect(dropArea, Color.grey);      
-				break;
-			case EventType.DragPerform:
-				DragAndDrop.AcceptDrag();
-       
-				CustomDragData receivedDragData = DragAndDrop.GetGenericData(dragDropIdentifier) as CustomDragData;
+		SerializedProperty parent = null;
 
-				// if (receivedDragData != null && receivedDragData.originalList == this.targetList)
-				// {
-				// 	ReorderObject();
-				// }
-				// else
-				// {
-				// 	AddDraggedObjectsToList();
-				// }
-       
-				currentEvent.Use();
-				break;
-			case EventType.MouseUp:
-				// Clean up, in case MouseDrag never occurred:
-				DragAndDrop.PrepareStartDrag();
-				break;
+		int depth = current.propertyPath.Split('.').Length;
+		
+		var serializedProperty = current.serializedObject.GetIterator();
+		while (serializedProperty.NextVisible(true))
+		{
+			if (current.propertyPath.Contains(serializedProperty.propertyPath))
+			{
+				int pDepth = serializedProperty.propertyPath.Split('.').Length;
+				if (pDepth < depth)
+				{
+					parent = serializedProperty.Copy();
+				}
+			}
+		}
+
+		return parent;
+	}
+	
+	
+	private IList GetArray(SerializedProperty property)
+	{
+		object current = property.serializedObject.targetObject;
+		string[] fields = property.propertyPath.Split('.');
+
+		for (int i = 0; i < fields.Length - 2; i++) 
+		{
+			string fieldName = fields[i];
+
+			if(fieldName.Equals("Array"))
+			{
+				fieldName = fields[++i];
+				string indexString = fieldName.Substring(5, fieldName.Length - 6);
+				int index = int.Parse(indexString);
+
+				System.Type type = current.GetType();
+				if(type.IsArray)
+				{
+					System.Array array = current as System.Array;
+					current = array.GetValue(index);
+				}
+				else if(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) 
+				{
+					IList list = current as IList;
+					current = list[index];
+				}
+			}
+			else
+			{
+				FieldInfo field = current.GetType().GetField(fields[i], BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				current = field.GetValue(current);
+			}
+		}
+
+		return current as IList;
+	}
+	
+	
+	private void SetArray(SerializedProperty property, IList value)
+	{
+		object current = property.serializedObject.targetObject;
+		string[] fields = property.propertyPath.Split('.');
+
+		for (int i = 0; i < fields.Length - 3; i++) 
+		{
+			string fieldName = fields[i];
+
+			if(fieldName.Equals("Array"))
+			{
+				fieldName = fields[++i];
+				string indexString = fieldName.Substring(5, fieldName.Length - 6);
+				int index = int.Parse(indexString);
+
+				System.Type type = current.GetType();
+				if(type.IsArray)
+				{
+					System.Array array = current as System.Array;
+					current = array.GetValue(index);
+				}
+				else if(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) 
+				{
+					IList list = current as IList;
+					current = list[index];
+				}
+			}
+			else
+			{
+				FieldInfo field = current.GetType().GetField(fields[i], BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				current = field.GetValue(current);
+			}
+		}
+
+		{
+			FieldInfo field = current.GetType().GetField(fields[fields.Length - 3], BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+			field?.SetValue(current, value);
 		}
 	}
-
-	private bool IsDragTargetValid()
+	
+	
+	public void DropAreaGUI (Rect position, SerializedProperty property, GUIContent label)
 	{
-		return false;
-	}
+		if(IsArray(property, out int index) && index == 0)
+		{
+			Event evt = Event.current;
 
-
-	public class CustomDragData{
-		public int originalIndex;
-		public IList originalList;
+			position.y -= 18 * 2;
+     
+			switch (evt.type) {
+				case EventType.DragUpdated:
+				case EventType.DragPerform:
+					if (!position.Contains (evt.mousePosition))
+						return;
+             
+					DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+         
+					if (evt.type == EventType.DragPerform) 
+					{
+						DragAndDrop.AcceptDrag ();
+             
+						IList array = GetArray(property);
+						if (array != null)
+						{
+							List<AssetLink> links = new List<AssetLink>();
+							foreach (Object drag in DragAndDrop.objectReferences) 
+							{
+								if(VisibleType.IsInstanceOfType(drag))
+								{
+									var link = new AssetLink(drag);
+									if (link.IsResource)
+									{
+										links.Add(link);
+									}
+								}
+							}
+							
+							if (!array.IsFixedSize)
+							{
+								foreach (AssetLink link in links)
+								{
+									array.Add(link);
+								}
+							}
+							else if (array is AssetLink[] linksArray)
+							{
+								int size = linksArray.Length;
+								System.Array.Resize(ref linksArray, size + links.Count);
+								for (int i = 0; i < links.Count; i++)
+								{
+									linksArray[size + i] = links[i];
+								}
+								SetArray(property, linksArray);
+							}
+						}
+					}
+					break;
+			}
+		}
 	}
 }

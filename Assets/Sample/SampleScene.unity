@@ -340,13 +340,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab:
-    name: Cube1
-    assetGUID: 775166f108b284736a9c2e4efb163714
+    name: Cube2
+    assetGUID: 9793056cddc0b264d8d383e1f17838a5
   prefabs:
   - name: mark
     assetGUID: 8db1a8a9824ea194a86398069e1c93ce
-  - name: mark
-    assetGUID: 8db1a8a9824ea194a86398069e1c93ce
+  - name: Cube2
+    assetGUID: 9793056cddc0b264d8d383e1f17838a5
+  - name: Cube1
+    assetGUID: 775166f108b284736a9c2e4efb163714
+  prefabs2:
+  - name: 
+    assetGUID: 
+  - name: 
+    assetGUID: 
+  - name: 
+    assetGUID: 
   gprefabs:
   - {fileID: 3126107798037681094, guid: ca617dc7f8425fd4093eb1b12bf6947a, type: 3}
-  - {fileID: 0}
+  - {fileID: 5860982712061141711, guid: 9793056cddc0b264d8d383e1f17838a5, type: 3}
