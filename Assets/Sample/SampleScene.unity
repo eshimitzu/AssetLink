@@ -121,6 +121,55 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &502874093
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 502874095}
+  - component: {fileID: 502874094}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &502874094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 502874093}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94ef9e39e08826640970b7ffbac07352, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flags: 60
+  type: ReflectionViewer
+  Btn1: PrintFields
+  Btn2: PrintProperties
+  Btn3: PrintMethods
+  Btn4: PrintEvents
+--- !u!4 &502874095
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 502874093}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -339,23 +388,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b91516e3d9b24206911334416b12e6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  prefab:
-    name: Cube2
-    assetGUID: 9793056cddc0b264d8d383e1f17838a5
-  prefabs:
-  - name: mark
-    assetGUID: 8db1a8a9824ea194a86398069e1c93ce
-  - name: Cube2
-    assetGUID: 9793056cddc0b264d8d383e1f17838a5
-  - name: Cube1
-    assetGUID: 775166f108b284736a9c2e4efb163714
-  prefabs2:
+  links:
   - name: 
     assetGUID: 
-  - name: 
-    assetGUID: 
-  - name: 
-    assetGUID: 
-  gprefabs:
-  - {fileID: 3126107798037681094, guid: ca617dc7f8425fd4093eb1b12bf6947a, type: 3}
-  - {fileID: 5860982712061141711, guid: 9793056cddc0b264d8d383e1f17838a5, type: 3}

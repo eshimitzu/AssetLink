@@ -30,10 +30,12 @@ public class AssetLinkDrawer : PropertyDrawer
 
 		return asset;
 	}
-
+	
 
 	public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-	{		
+	{
+		PropertyDrawerUtility.Setup(property);
+		
 		EditorGUI.BeginProperty(position, label, property);
 
 		Object asset = null;
